@@ -4,7 +4,7 @@ import { useAuth } from "./context/AuthContext";
 import AdminLogin from "./components/AdminLogin";
 import Dashboard from "./components/Dashboard";
 import FAQ from "./pages/FAQ";
-// import PrivacyPolicy from "./pages/PrivacyPolicy"; // Uncommented this
+import PrivacyPolicy from "./pages/Privacy";
 
 // Import uploader components for nested routing
 import Part1_1_Uploader from "./components/Part1_1_Uploader";
@@ -28,7 +28,7 @@ function App() {
         {/* --- Public Routes --- */}
         {/* These routes are always accessible, regardless of login status. */}
         <Route path="/faq" element={<FAQ />} />
-        {/* <Route path="/privacy" element={<PrivacyPolicy />} /> */}
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* --- Authentication Route --- */}
         {/* If a logged-in user tries to go to /login, redirect them to the admin dashboard.
