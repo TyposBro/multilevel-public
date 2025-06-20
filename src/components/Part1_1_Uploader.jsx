@@ -1,4 +1,5 @@
-// Now, just define the props for each uploader
+import { Uploader } from "./Uploader";
+
 export const Part1_1_Uploader = () => (
   <Uploader
     title="Upload Part 1.1 Question"

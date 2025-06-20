@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 // This helper function reduces code duplication in the uploader components
