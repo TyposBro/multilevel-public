@@ -8,8 +8,6 @@ import "./assets/App.css";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
-      {" "}
-      {/* <-- Wrap App with the router */}
       <AuthProvider>
         <App />
       </AuthProvider>
