@@ -7,6 +7,7 @@ const Sidebar = () => {
     { to: "/admin/part1.2", name: "Part 1.2 Sets" },
     { to: "/admin/part2", name: "Part 2 Sets" },
     { to: "/admin/part3", name: "Part 3 Topics" },
+    { to: "/admin/wordbank", name: "Word Bank" },
   ];
 
   return (

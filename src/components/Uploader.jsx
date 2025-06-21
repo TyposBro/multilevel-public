@@ -1,20 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
 // This helper function reduces code duplication in the uploader components
 export const Uploader = ({ title, formFields, apiEndpoint }) => {
   const { token } = useAuth();
-  const [textData, setTextData] = useState(
-    formFields.reduce((acc, field) => {
-      if (field.type === "text" || field.type === "textarea") {
+
+  // Helper to create initial state from form fields
+  const createInitialState = () => {
+    return formFields.reduce((acc, field) => {
+      if (field.type === "text" || field.type === "textarea" || field.type === "select") {
         acc[field.name] = "";
       }
       return acc;
-    }, {})
-  );
+    }, {});
+  };
+
+  const [textData, setTextData] = useState(createInitialState());
   const [files, setFiles] = useState({});
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Reset form when formFields prop changes (navigating between uploaders)
+  useEffect(() => {
+    setTextData(createInitialState());
+    setFiles({});
+    setMessage("");
+  }, [formFields]);
 
   const handleTextChange = (e) => {
     setTextData({ ...textData, [e.target.name]: e.target.value });
@@ -42,7 +53,7 @@ export const Uploader = ({ title, formFields, apiEndpoint }) => {
       if (!response.ok) throw new Error(result.message || "Upload failed");
       setMessage(`Success! Content added.`);
       e.target.reset();
-      setTextData({});
+      setTextData(createInitialState());
       setFiles({});
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -58,24 +69,56 @@ export const Uploader = ({ title, formFields, apiEndpoint }) => {
         {formFields.map((field) => (
           <div className="input-group" key={field.name}>
             <label htmlFor={field.name}>{field.label}</label>
-            {field.type === "textarea" ? (
-              <textarea
-                id={field.name}
-                name={field.name}
-                onChange={handleTextChange}
-                rows={field.rows || 3}
-                required
-              />
-            ) : (
-              <input
-                type={field.type}
-                id={field.name}
-                name={field.name}
-                onChange={field.type === "file" ? handleFileChange : handleTextChange}
-                accept={field.accept}
-                required
-              />
-            )}
+            {(() => {
+              // --- START OF MODIFIED LOGIC ---
+              const isRequired = field.required !== false; // Default to true
+
+              switch (field.type) {
+                case "textarea":
+                  return (
+                    <textarea
+                      id={field.name}
+                      name={field.name}
+                      value={textData[field.name] || ""}
+                      onChange={handleTextChange}
+                      rows={field.rows || 3}
+                      required={isRequired}
+                    />
+                  );
+                case "select":
+                  return (
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={textData[field.name] || ""}
+                      onChange={handleTextChange}
+                      required={isRequired}
+                    >
+                      <option value="" disabled>
+                        -- Select an option --
+                      </option>
+                      {field.options.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                default: // 'text', 'file', etc.
+                  return (
+                    <input
+                      type={field.type}
+                      id={field.name}
+                      name={field.name}
+                      value={field.type === "file" ? undefined : textData[field.name] || ""}
+                      onChange={field.type === "file" ? handleFileChange : handleTextChange}
+                      accept={field.accept}
+                      required={isRequired}
+                    />
+                  );
+              }
+              // --- END OF MODIFIED LOGIC ---
+            })()}
           </div>
         ))}
         <button type="submit" className="btn-primary" disabled={isLoading}>
