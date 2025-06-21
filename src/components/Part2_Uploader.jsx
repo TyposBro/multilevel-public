@@ -10,11 +10,18 @@ const Part2_Uploader = () => (
         name: "imageDescription",
         label: "Image Description (for internal reference)",
         type: "text",
+        required: false, // Optional field for internal use
       },
       { name: "question1", label: "Question 1 Text", type: "text" },
       { name: "question2", label: "Question 2 Text", type: "text" },
       { name: "question3", label: "Question 3 Text", type: "text" },
-      { name: "image", label: "Image", type: "file", accept: "image/*" },
+      {
+        name: "image",
+        label: "Image (Optional)",
+        type: "file",
+        accept: "image/*",
+        required: false,
+      },
       // Note: The audio file contains the reading of all 3 questions together
       { name: "audio", label: "Audio for All 3 Questions", type: "file", accept: "audio/*" },
     ]}

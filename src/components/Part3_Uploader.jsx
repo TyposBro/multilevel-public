@@ -11,7 +11,7 @@ const Part3_Uploader = () => (
       { name: "againstPoints", label: "AGAINST Points (one per line)", type: "textarea", rows: 4 },
       // The 'image' is optional for Part 3, so we remove the `required` attribute from the backend
       // and let the frontend submit without it if the user doesn't select one.
-      { name: "image", label: "Optional Image", type: "file", accept: "image/*" },
+      { name: "image", label: "Optional Image", type: "file", accept: "image/*", required: false },
     ]}
   />
 );
