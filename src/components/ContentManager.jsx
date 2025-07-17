@@ -4,28 +4,36 @@ import { Uploader } from "./Uploader";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// Reusable form component for editing items
-const EditorForm = ({ item, formFields, apiEndpoint, token, onSave, onCancel }) => {
-  const [formData, setFormData] = useState({});
+// Reusable form component for simple items (text and single file fields)
+const GenericEditorForm = ({ item, formFields, apiEndpoint, token, onSave, onCancel }) => {
+  const [textData, setTextData] = useState({});
+  const [files, setFiles] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Populate form with item data, handling JSON fields
     const initialData = {};
     formFields.forEach((field) => {
-      const value = item[field.name];
-      if (Array.isArray(value)) {
-        initialData[field.name] = value.join("\n");
-      } else {
-        initialData[field.name] = value || "";
+      if (field.type !== "file") {
+        const value = item[field.name];
+        if (Array.isArray(value)) {
+          initialData[field.name] = value.join("\n");
+        } else {
+          initialData[field.name] = value || "";
+        }
       }
     });
-    setFormData(initialData);
+    setTextData(initialData);
   }, [item, formFields]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleTextChange = (e) => {
+    setTextData({ ...textData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files[0]) {
+      setFiles({ ...files, [e.target.name]: e.target.files[0] });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -33,26 +41,21 @@ const EditorForm = ({ item, formFields, apiEndpoint, token, onSave, onCancel }) 
     setIsLoading(true);
     setMessage("");
 
-    // Prepare data, converting multiline text back to arrays if needed
-    const payload = { ...formData };
-    formFields.forEach((field) => {
-      if (field.type === "textarea" && Array.isArray(item[field.name])) {
-        payload[field.name] = formData[field.name].split("\n").filter((line) => line.trim() !== "");
-      }
-    });
+    const payload = new FormData();
+    Object.keys(textData).forEach((key) => payload.append(key, textData[key]));
+    Object.keys(files).forEach((key) => payload.append(key, files[key]));
 
     try {
       const response = await fetch(`${API_BASE_URL}${apiEndpoint}/${item.id}`, {
-        method: "PUT",
+        method: "POST", // Use POST for FormData
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: payload,
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Update failed");
-      onSave(result); // Pass updated item back to parent
+      onSave(result);
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -63,32 +66,68 @@ const EditorForm = ({ item, formFields, apiEndpoint, token, onSave, onCancel }) 
   return (
     <div className="modal-backdrop">
       <div className="modal">
-        <h3>Editing Item: {item.id}</h3>
+        <h3>
+          Editing Item: <span className="id-column">{item.id}</span>
+        </h3>
         <form onSubmit={handleSubmit}>
-          {formFields
-            .filter((field) => field.type !== "file") // Don't show file inputs in edit form
-            .map((field) => (
+          {formFields.map((field) => {
+            const currentFileUrl = field.dbColumn ? item[field.dbColumn] : null;
+            return (
               <div className="input-group" key={field.name}>
                 <label htmlFor={`edit-${field.name}`}>{field.label}</label>
-                {field.type === "textarea" ? (
-                  <textarea
-                    id={`edit-${field.name}`}
-                    name={field.name}
-                    value={formData[field.name] || ""}
-                    onChange={handleChange}
-                    rows={field.rows || 4}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    id={`edit-${field.name}`}
-                    name={field.name}
-                    value={formData[field.name] || ""}
-                    onChange={handleChange}
-                  />
-                )}
+                {(() => {
+                  switch (field.type) {
+                    case "textarea":
+                      return (
+                        <textarea
+                          id={`edit-${field.name}`}
+                          name={field.name}
+                          value={textData[field.name] || ""}
+                          onChange={handleTextChange}
+                          rows={field.rows || 4}
+                        />
+                      );
+                    case "file":
+                      return (
+                        <div>
+                          {currentFileUrl && (
+                            <div className="file-preview">
+                              {field.accept.startsWith("image/") && (
+                                <img src={currentFileUrl} alt="Current file preview" />
+                              )}
+                              {field.accept.startsWith("audio/") && (
+                                <audio controls src={currentFileUrl} />
+                              )}
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            id={`edit-${field.name}`}
+                            name={field.name}
+                            accept={field.accept}
+                            onChange={handleFileChange}
+                          />
+                          <small>
+                            Upload a new file to replace the current one. Leave empty to keep the
+                            existing file.
+                          </small>
+                        </div>
+                      );
+                    default:
+                      return (
+                        <input
+                          type="text"
+                          id={`edit-${field.name}`}
+                          name={field.name}
+                          value={textData[field.name] || ""}
+                          onChange={handleTextChange}
+                        />
+                      );
+                  }
+                })()}
               </div>
-            ))}
+            );
+          })}
           {message && <p className="error-message">{message}</p>}
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onCancel} disabled={isLoading}>
@@ -104,7 +143,13 @@ const EditorForm = ({ item, formFields, apiEndpoint, token, onSave, onCancel }) 
   );
 };
 
-export const ContentManager = ({ title, apiEndpoint, formFields, tableColumns }) => {
+export const ContentManager = ({
+  title,
+  apiEndpoint,
+  formFields,
+  tableColumns,
+  EditorComponent,
+}) => {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -131,6 +176,8 @@ export const ContentManager = ({ title, apiEndpoint, formFields, tableColumns })
 
   useEffect(() => {
     fetchItems();
+    setShowUploader(false); // Reset uploader visibility on navigation
+    setEditingItem(null); // Reset editor visibility on navigation
   }, [fetchItems]);
 
   const handleDelete = async (itemId) => {
@@ -140,11 +187,11 @@ export const ContentManager = ({ title, apiEndpoint, formFields, tableColumns })
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.message || "Failed to delete.");
+      if (response.status !== 204) {
+        const result = await response.json().catch(() => ({ message: "Failed to delete" }));
+        throw new Error(result.message);
       }
-      setItems(items.filter((item) => item.id !== itemId)); // Optimistic update
+      setItems(items.filter((item) => item.id !== itemId));
     } catch (err) {
       setError(`Deletion Error: ${err.message}`);
     }
@@ -155,10 +202,12 @@ export const ContentManager = ({ title, apiEndpoint, formFields, tableColumns })
     setEditingItem(null);
   };
 
+  // Use the custom EditorComponent if provided, otherwise fall back to the generic one
+  const Editor = EditorComponent || GenericEditorForm;
+
   return (
     <div className="content-manager">
-      <h2>{title}</h2>
-
+      <h2>{title} Management</h2>
       <div className="content-manager-actions">
         <button className="btn-primary" onClick={() => setShowUploader(!showUploader)}>
           {showUploader ? "Hide Uploader" : "Create New Item"}
@@ -166,7 +215,11 @@ export const ContentManager = ({ title, apiEndpoint, formFields, tableColumns })
       </div>
 
       {showUploader && (
-        <Uploader title={`New ${title} Item`} apiEndpoint={apiEndpoint} formFields={formFields} />
+        <Uploader
+          title={`Create New ${title} Item`}
+          apiEndpoint={apiEndpoint}
+          formFields={formFields}
+        />
       )}
 
       <div className="content-table-container">
@@ -186,7 +239,9 @@ export const ContentManager = ({ title, apiEndpoint, formFields, tableColumns })
             {items.map((item) => (
               <tr key={item.id}>
                 {tableColumns.map((col) => (
-                  <td key={col.key}>{item[col.key] || "N/A"}</td>
+                  <td key={col.key} className={col.key === "id" ? "id-column" : ""}>
+                    {String(item[col.key] || "N/A")}
+                  </td>
                 ))}
                 <td>
                   <div className="action-buttons">
@@ -206,9 +261,9 @@ export const ContentManager = ({ title, apiEndpoint, formFields, tableColumns })
       </div>
 
       {editingItem && (
-        <EditorForm
+        <Editor
           item={editingItem}
-          formFields={formFields}
+          formFields={formFields} // Pass formFields for the generic editor to use
           apiEndpoint={apiEndpoint}
           token={token}
           onSave={handleSave}

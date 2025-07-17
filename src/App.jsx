@@ -5,6 +5,7 @@ import AdminLogin from "./components/AdminLogin";
 import Dashboard from "./components/Dashboard";
 import FAQ from "./pages/FAQ";
 import PrivacyPolicy from "./pages/Privacy";
+import "./App.css";
 
 // --- START OF MODIFIED CODE ---
 // Import manager components for nested routing

@@ -7,7 +7,13 @@ const Part1_1_Manager = () => (
     apiEndpoint="/api/admin/content/part1.1"
     formFields={[
       { name: "questionText", label: "Question Text", type: "text" },
-      { name: "audio", label: "Question Audio", type: "file", accept: "audio/*" },
+      {
+        name: "audio",
+        label: "Question Audio",
+        type: "file",
+        accept: "audio/*",
+        dbColumn: "audioUrl",
+      },
     ]}
     tableColumns={[
       { key: "id", header: "ID" },

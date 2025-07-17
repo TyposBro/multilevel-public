@@ -9,6 +9,14 @@ const Part3_Manager = () => (
       { name: "topic", label: "Topic Statement", type: "text" },
       { name: "forPoints", label: "FOR Points (one per line)", type: "textarea", rows: 4 },
       { name: "againstPoints", label: "AGAINST Points (one per line)", type: "textarea", rows: 4 },
+      {
+        name: "image",
+        label: "Topic Image (Optional)",
+        type: "file",
+        accept: "image/*",
+        required: false,
+        dbColumn: "imageUrl",
+      },
     ]}
     tableColumns={[
       { key: "id", header: "ID" },
